@@ -1,9 +1,7 @@
-using UnityEngine;
-using System.Collections;
-using UnityEngine.UI;
-using UnityEngine.Advertisements;
-
 public class CameraMove : MonoBehaviour {
+	public int cubeNum;
+	public int actualCubeNum;
+
 	public int rotateSpeed;
 	public GameObject cube;
 	public float cubex;
@@ -19,6 +17,7 @@ public class CameraMove : MonoBehaviour {
 	public ParticleSystem flare;
 	public ParticleSystem sparks;
 	public GameObject panel;
+	public Text highScoreText;
 	public int score;
 	public Text scoreText;
 	public int time;
@@ -27,41 +26,48 @@ public class CameraMove : MonoBehaviour {
 	public AudioClip bigFart;
 	public AudioClip toilet;
 	AudioSource audio;
-	//private float multiplier;
+	public Slider bar;
+	public Text plusTime;
+	public Color plusColor;
 
 	// Use this for initialization
 	void Start () {
-		StartCoroutine(Cube());
+		for(int a = 0; a < cubeNum; a++){
+			Cube();
+		}
+		actualCubeNum = cubeNum;
 		StartCoroutine(Timer());
 		panel.SetActive(false);
+		plusColor = new Color(1,1,1,0);
+		plusTime.color = plusColor;
 		score = 0;
-		time = 60;
+		time = 10;
 		audio= GetComponent<AudioSource>();
+		bar.maxValue = 0.99f;
+		bar.minValue = 0.00f;
+		bar.value = 0;
 	}
 	IEnumerator Timer(){
-		Debug.Log ("sup");
 		yield return new WaitForSeconds(1.0f);
 		time -=1;
 		timeText.text = time.ToString();
 		if(time ==0){
 			panel.SetActive(true);
+			highScoreText.text = "High Score: " + HighScore.StoreHighscore(score).ToString();
 		}
 		if(time !=0){
 			StartCoroutine(Timer());
 		}
 	}
-	IEnumerator Cube(){
-
+	void Cube(){
 		GameObject newCube = (GameObject)Instantiate(cube, RandomInUnitCircle(radius), Quaternion.identity); 
 		int colorNum = Random.Range(0,4);
 		Renderer rend = newCube.GetComponent<Renderer>();
 		rend.material.shader = Shader.Find("Standard");
 		rend.material.SetColor("_EmissionColor", cubeColor[colorNum]);
 		newCube.tag = cubeTag[colorNum];
-		yield return new WaitForSeconds(1.0f);
-		if(time!= 0){
-			StartCoroutine(Cube());
-		}
+		actualCubeNum +=1;
+
 	}
 	public static Vector3 RandomInUnitCircle( float radius) 
 	{
@@ -76,6 +82,9 @@ public class CameraMove : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if(actualCubeNum< cubeNum){
+			Cube();
+		}
 		if(-20 <= transform.position.x  && transform.position.x <= 20 && -20 <= transform.position.z  && transform.position.z <= 20 ){
 			transform.Translate(Vector3.forward * Time.deltaTime*moveSpeed);
 		}
@@ -157,13 +166,15 @@ public class CameraMove : MonoBehaviour {
 				}
 				score += 1;
 				scoreText.text = score.ToString();
+				actualCubeNum -=1;
+				StartCoroutine(ChangeBarVal());
 				Destroy(hit.transform.gameObject);
-				Debug.Log ("destroy");
 				playFart();
 			}
 			else{
 				playBigFart();
 				panel.SetActive(true);
+				highScoreText.text = "High Score: " + HighScore.StoreHighscore(score).ToString();
 				}
 					
 		}	
@@ -185,13 +196,15 @@ public class CameraMove : MonoBehaviour {
 				}
 				score += 1;
 				scoreText.text = score.ToString();
+				actualCubeNum -=1;
+				StartCoroutine(ChangeBarVal());
 				Destroy(hit.transform.gameObject);
-				Debug.Log ("destroy");
 				playFart();
 			}
 			else{
 				playBigFart();
 				panel.SetActive(true);
+				highScoreText.text = "High Score: " + HighScore.StoreHighscore(score).ToString();
 			}
 			
 		}	
@@ -213,13 +226,15 @@ public class CameraMove : MonoBehaviour {
 				}
 				score += 1;
 				scoreText.text = score.ToString();
+				actualCubeNum -=1;
+				StartCoroutine(ChangeBarVal());
 				Destroy(hit.transform.gameObject);
-				Debug.Log ("destroy");
 				playFart();
 			}
 			else{
 				playBigFart();
 				panel.SetActive(true);
+				highScoreText.text = "High Score: " + HighScore.StoreHighscore(score).ToString();
 			}
 			
 		}	
@@ -241,13 +256,15 @@ public class CameraMove : MonoBehaviour {
 				}
 				score += 1;
 				scoreText.text = score.ToString();
+				actualCubeNum -=1;
+				StartCoroutine(ChangeBarVal());
 				Destroy(hit.transform.gameObject);
-				Debug.Log ("destroy");
 				playFart();
 			}
 			else{
 				playBigFart();
 				panel.SetActive(true);
+				highScoreText.text = "High Score: " + HighScore.StoreHighscore(score).ToString();
 			}
 			
 		}	
@@ -260,13 +277,11 @@ public class CameraMove : MonoBehaviour {
 		flare.Stop();
 	}
 	public void LoadGame(){
-		Debug.Log(Advertisement.isInitialized);
 		if (Advertisement.IsReady())
 		{
-			Debug.Log("hi");
 			Advertisement.Show();
 		}
-		//Application.LoadLevel("GameScene");
+		Application.LoadLevel("GameScene");
 	}
 	public void LoadStart(){
 		if (Advertisement.IsReady())
@@ -282,5 +297,31 @@ public class CameraMove : MonoBehaviour {
 	public void playBigFart(){
 		audio.PlayOneShot(bigFart);
 		audio.PlayOneShot(toilet);
+	}
+	IEnumerator ChangeBarVal(){
+		if(bar.value < 0.9f){
+			for(int x = 0; x < 20; x++){
+				bar.value += 0.01f;
+				yield return new WaitForSeconds(0.01f);
+			}
+		}
+		else{
+			StartCoroutine(AddTime(10));
+			for(int x = 0; x < 99; x++){
+				bar.value-= 0.03f;
+				yield return new WaitForSeconds(0.01f);
+			}
+		}
+	}
+	IEnumerator AddTime(int t){
+		time+=t;
+		for(int x = 0; x < 3; x++){
+			Debug.Log(x);
+			plusColor.a = 1;
+			plusTime.color = plusColor;
+			yield return new WaitForSeconds(0.3f);
+			plusColor.a = 0;
+			plusTime.color = plusColor;
+		}
 	}
 }
